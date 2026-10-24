@@ -1,0 +1,30 @@
+bin/
+obj/
+dist/
+.vs/
+*.user
+TestResults/
+
+# never commit anything that could hold an account or a reading
+.env*
+state.json
+claude-status.json
+settings.json
+
+# AI tool files stay local
+CLAUDE.md
+.claude/
+AGENTS.md
+.codex/
+GEMINI.md
+.gemini/
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.aider*
+.opencode/
+opencode.json
+.github/copilot-instructions.md
+.specstory/
+.continue/

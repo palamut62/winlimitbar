@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <StartupObject>LimitBar.Program</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>LimitBar</AssemblyName>
+    <Version>1.0.3</Version>
+    <InformationalVersion>1.0.3-win</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="LimitBar.Tests" />
+  </ItemGroup>
+
+</Project>
