@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet build -c Release
+      - run: dotnet test -c Release --no-build
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Publish
+        shell: pwsh
+        run: |
+          dotnet publish src/LimitBar -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=none -o out/fd
+          dotnet publish src/LimitBar -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o out/sc
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item out/fd/LimitBar.exe dist/LimitBar-win-x64.exe
+          Copy-Item out/sc/LimitBar.exe dist/LimitBar-win-x64-standalone.exe
+          Get-ChildItem dist/*.exe | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), $_.Name } | Set-Content dist/SHA256SUMS.txt
+      - name: Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:GITHUB_REF_NAME dist/* --title "LimitBar $env:GITHUB_REF_NAME" --notes "Windows port of dancik/limitbar. See README for install and security notes."

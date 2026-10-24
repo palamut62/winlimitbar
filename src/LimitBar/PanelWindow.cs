@@ -83,10 +83,21 @@ public sealed class PanelWindow : System.Windows.Window
         var root = (FrameworkElement)Content;
         root.Measure(new Size(Width, double.PositiveInfinity));
         var h = root.DesiredSize.Height;
-        var x = anchor.Left + anchor.Width / 2 - CardWidth / 2;
-        x = Math.Min(Math.Max(x, workArea.Left + 8), workArea.Right - CardWidth - 8) - Shadow;
-        var below = anchor.Top < workArea.Top + workArea.Height / 2;
-        var y = below ? anchor.Bottom + 5 - Shadow : anchor.Top - 5 - h + Shadow;
+        double x, y;
+        if (anchor.Width > anchor.Height)
+        {
+            // horizontal taskbar: centred under / over the strip
+            x = Math.Min(Math.Max(anchor.Left + anchor.Width / 2 - CardWidth / 2, workArea.Left + 8), workArea.Right - CardWidth - 8);
+            y = anchor.Top < workArea.Top + workArea.Height / 2 ? anchor.Bottom + 5 : anchor.Top - 5 - (h - 2 * Shadow);
+        }
+        else
+        {
+            // vertical taskbar: beside the strip, bottom-aligned with it, kept on screen
+            x = anchor.Left < workArea.Left + workArea.Width / 2 ? anchor.Right + 5 : anchor.Left - 5 - CardWidth;
+            y = Math.Max(workArea.Top + 8, Math.Min(anchor.Bottom - (h - 2 * Shadow), workArea.Bottom - (h - 2 * Shadow) - 8));
+        }
+        x -= Shadow;
+        y -= Shadow;
         Left = x;
         Top = y;
         Height = h;

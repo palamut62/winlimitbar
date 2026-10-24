@@ -9,6 +9,7 @@
     <StartupObject>LimitBar.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>LimitBar</AssemblyName>
+    <ApplicationIcon>..\..\assets\LimitBar.ico</ApplicationIcon>
     <Version>1.0.3</Version>
     <InformationalVersion>1.0.3-win</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

@@ -4,6 +4,8 @@
 Codex, Gemini (Google Antigravity) and Grok Build; hover for the 5-hour and weekly windows and when they
 reset.
 
+![LimitBar on the Windows taskbar: hover opens the panel](docs/demo.gif)
+
 A Windows port of [dancik/limitbar](https://github.com/dancik/limitbar) (macOS, MIT) with the same design,
 panel and behaviour. Written in C# / WPF (.NET 8), a single ~260 KB exe. No Electron and no browser.
 
@@ -28,8 +30,17 @@ the strip for About and Quit.
 
 ## Install
 
-Requirements: Windows 10/11, the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0),
-and at least one of the CLIs below signed in.
+Requirements: Windows 10/11 and at least one of the CLIs below signed in.
+
+Download from [Releases](https://github.com/palamut62/winlimitbar/releases):
+
+- `LimitBar-win-x64.exe`: needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (small).
+- `LimitBar-win-x64-standalone.exe`: no runtime needed (larger).
+
+Check the download against `SHA256SUMS.txt` (`Get-FileHash .\LimitBar-win-x64.exe`). Put it in
+`%LOCALAPPDATA%\Programs\LimitBar\` and run it. The exe is not code-signed, so SmartScreen may ask once.
+
+Or build it yourself:
 
 ```powershell
 dotnet publish src/LimitBar -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist
