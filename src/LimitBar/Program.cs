@@ -23,7 +23,7 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        if (args.Contains("--statusline")) return Statusline();
+        if (args.Contains("--statusline")) return Statusline(args);
         if (args.Contains("--probe")) return Probe();
         if (args.Contains("--version"))
         {
@@ -37,7 +37,7 @@ public static class Program
 
                   LimitBar.exe               start the taskbar strip (one instance per user)
                   LimitBar.exe --probe       ask every CLI once and print what LimitBar would show, as JSON
-                  LimitBar.exe --statusline  Claude Code status line helper (reads its JSON on stdin)
+                  LimitBar.exe --statusline [--profile <name>]  Claude Code status line helper (JSON on stdin)
                   LimitBar.exe --version
 
                 {About}
@@ -70,13 +70,13 @@ public static class Program
     static int Probe()
     {
         var all = new SortedDictionary<string, Snapshot>();
-        foreach (var v in VendorInfo.All)
+        foreach (var a in Settings.Accounts())
         {
-            all[v.Key()] = v switch
+            all[a.Key] = a.Vendor switch
             {
-                Vendor.Claude => ProbeClaude(),
+                Vendor.Claude => ProbeClaude(a),
                 Vendor.Gemini => Fetch.Gemini(),
-                Vendor.Codex => Fetch.CodexFromServer(),
+                Vendor.Codex => Fetch.CodexFromServer(a),
                 _ => Fetch.Grok(),
             };
         }
@@ -90,24 +90,27 @@ public static class Program
         return 0;
     }
 
-    static Snapshot ProbeClaude()
+    static Snapshot ProbeClaude(Account a)
     {
         var (bin, why) = Fetch.Binary(Vendor.Claude);
         if (bin == null) return why!;
-        var acct = Fetch.ClaudeAccount();
+        var acct = Fetch.ClaudeAccount(a);
         if (acct is { SignedIn: false }) return Snapshot.Status(Vendor.Claude, VendorState.SignedOut);
-        var s = Fetch.ClaudeFile() ?? Fetch.ClaudeUsage();
+        var s = Fetch.ClaudeFile(a) ?? Fetch.ClaudeUsage(a);
         return s with { Plan = acct?.Plan ?? s.Plan };
     }
 
     /// `LimitBar --statusline` - optional Claude Code status line (see README). Keeps only the limits, in
     /// %LOCALAPPDATA%\limitbar\claude-status.json, and prints one short line, e.g. "Opus · 5h 23% · 7d 41%".
-    static int Statusline()
+    static int Statusline(string[] args)
     {
+        // `--profile <name>` keeps a second Claude account's readings apart (CLAUDE_CONFIG_DIR profiles)
+        var at = Array.IndexOf(args, "--profile");
+        var profile = at >= 0 && at + 1 < args.Length ? args[at + 1] : "";
         string input;
         using (var r = new StreamReader(Console.OpenStandardInput(), Encoding.UTF8)) input = r.ReadToEnd();
         var (file, line) = Parse.Statusline(input, DateTimeOffset.Now);
-        if (file != null) Paths.Write(Fetch.ClaudeFilePath, file);   // only a refresh that carries limits replaces it
+        if (file != null) Paths.Write(Fetch.ClaudeFilePath(new Account(Vendor.Claude, profile, "")), file);   // only a refresh that carries limits replaces it
         Out().WriteLine(line);
         return 0;
     }

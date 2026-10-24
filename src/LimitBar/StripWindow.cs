@@ -66,7 +66,8 @@ public sealed class StripWindow : System.Windows.Window
         var installed = store.Installed;
         for (var i = 0; i < installed.Count; i++)
         {
-            var v = installed[i];
+            var acct = installed[i];
+            var v = acct.Vendor;
             var cell = new StackPanel
             {
                 Orientation = Orientation.Horizontal, Margin = new Thickness(i > 0 ? 8 : 0, 0, 0, 0),
@@ -75,7 +76,10 @@ public sealed class StripWindow : System.Windows.Window
             var mark = Marks.Image(v, 13, Theme.Primary);
             mark.Margin = new Thickness(0, 0, 3, 0);
             cell.Children.Add(mark);
-            cell.Children.Add(Digit(store.Snaps.GetValueOrDefault(v)));
+            if (acct.Profile.Length > 0)   // which account: the profile's first letter
+                cell.Children.Add(Theme.Text(acct.Profile[..1].ToUpperInvariant(), 9, Theme.Secondary, FontWeights.SemiBold)
+                    .With(t => { t.Margin = new Thickness(0, 0, 3, 0); t.VerticalAlignment = VerticalAlignment.Center; }));
+            cell.Children.Add(Digit(store.Snaps.GetValueOrDefault(acct.Key)));
             row.Children.Add(cell);
         }
         item.Child = row;
@@ -222,11 +226,13 @@ public sealed class StripWindow : System.Windows.Window
         Item("GitHub: palamut62", () => Theme.Open("https://github.com/palamut62"));
         Item("Based on dancik/limitbar (MIT)", () => Theme.Open("https://github.com/dancik/limitbar"));
         m.Items.Add(new Separator());
+        Item("Settings…", () => SettingsWindow.Open(store));
         Item("Quit LimitBar", () => Application.Current.Shutdown());
         // open away from the taskbar, never under it
-        m.Opened += (_, _) => HidePanel(evenIfPinned: true);
         item.ContextMenuOpening += (_, _) =>
         {
+            HidePanel(evenIfPinned: true);
+            clickClosed = true;   // the panel must not reopen over the menu
             m.PlacementTarget = item;
             m.Placement = StripRect().Top < SystemParameters.WorkArea.Top + SystemParameters.WorkArea.Height / 2
                 ? System.Windows.Controls.Primitives.PlacementMode.Bottom

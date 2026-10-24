@@ -56,6 +56,15 @@ Installed somewhere else? Put the full path in `%LOCALAPPDATA%\limitbar\settings
 `{"codexPath": "D:\\tools\\codex.exe"}`. The same works for `claudePath`, `agyPath` and `grokPath`. Then
 restart LimitBar.
 
+### Several accounts of one service
+
+Right-click the strip, **Settings…**, pick Claude or Codex, name the account and press **Add account**. Press
+**Terminal** on its row and sign in there. Each account keeps its sign-in in its own folder
+(`CLAUDE_CONFIG_DIR` / `CODEX_HOME`), so signing out of one never touches another. Every account gets its own
+mark and first letter on the strip and its own section in the panel. A signed-out account stays listed.
+Settings also hides services and sets CLI locations. For live Claude numbers per account use
+`LimitBar.exe --statusline --profile <name>`.
+
 ### Optional: free Claude readings from the status line
 
 By default LimitBar runs `claude -p /usage` at most once every 20 minutes. This makes no model call. For live

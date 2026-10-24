@@ -25,11 +25,14 @@ public static class Fetch
 
     // MARK: Claude - the statusline file (free) first; `claude -p /usage` only when it is stale.
 
-    public static readonly string ClaudeFilePath = Path.Combine(Paths.Cache, "claude-status.json");
+    /// Written by `LimitBar --statusline [--profile <name>]` when the user opted in. Holds only the limits.
+    public static string ClaudeFilePath(Account a) => Path.Combine(Paths.Cache,
+        a.Profile.Length == 0 ? "claude-status.json"
+            : "claude-status-" + string.Concat(a.Profile.Select(c => char.IsLetterOrDigit(c) ? c : '_')) + ".json");
 
-    public static Snapshot? ClaudeFile()
+    public static Snapshot? ClaudeFile(Account a)
     {
-        try { return Parse.ClaudeFile(File.ReadAllText(ClaudeFilePath)); } catch (IOException) { return null; }
+        try { return Parse.ClaudeFile(File.ReadAllText(ClaudeFilePath(a))); } catch (IOException) { return null; }
     }
 
     /// Isolation for every `claude` call: user/project settings files ignored (so no hook from them), hooks
@@ -39,20 +42,20 @@ public static class Fetch
         "--settings", """{"disableAllHooks":true,"language":"English"}"""];
 
     /// `claude -p /usage` - no model call, but a full CLI start. Called at most every 20 min.
-    public static Snapshot ClaudeUsage()
+    public static Snapshot ClaudeUsage(Account a)
     {
         var (bin, why) = Binary(Vendor.Claude);
         if (bin == null) return why!;
-        var o = Cli.Run(bin, ["-p", "/usage", "--output-format", "json", "--max-turns", "1", .. ClaudeIsolation], 40);
+        var o = Cli.Run(bin, ["-p", "/usage", "--output-format", "json", "--max-turns", "1", .. ClaudeIsolation], 40, a.Env);
         return o == null
             ? Snapshot.Status(Vendor.Claude, VendorState.Failed, "claude timed out")
             : Parse.ClaudeUsage(o.Text, o.Code, DateTimeOffset.Now);
     }
 
-    public static (bool SignedIn, string Plan)? ClaudeAccount()
+    public static (bool SignedIn, string Plan)? ClaudeAccount(Account a)
     {
         if (Cli.Find("claude") is not { Kind: FoundKind.Ok, Path: { } bin }) return null;
-        return Cli.Run(bin, ["auth", "status", "--json"], 20) is { } o ? Parse.ClaudeAccount(o.Text) : null;
+        return Cli.Run(bin, ["auth", "status", "--json"], 20, a.Env) is { } o ? Parse.ClaudeAccount(o.Text) : null;
     }
 
     // MARK: Gemini
@@ -69,13 +72,15 @@ public static class Fetch
 
     // MARK: Codex - the CLI writes rate_limits into its own session logs for free; app-server when old.
 
-    public static string CodexDay(DateTime d) =>
-        Path.Combine(Cli.Home, ".codex", "sessions", d.ToString("yyyy"), d.ToString("MM"), d.ToString("dd"));
+    public static string CodexRoot(Account a) => a.Dir.Length == 0 ? Path.Combine(Cli.Home, ".codex") : a.Dir;
 
-    public static Snapshot? CodexFromLogs()
+    public static string CodexDay(Account a, DateTime d) =>
+        Path.Combine(CodexRoot(a), "sessions", d.ToString("yyyy"), d.ToString("MM"), d.ToString("dd"));
+
+    public static Snapshot? CodexFromLogs(Account a)
     {
         // today and yesterday are enough: the 5-hour window is all we need fresh
-        var newest = new[] { DateTime.Now, DateTime.Now.AddDays(-1) }.Select(CodexDay).Where(Directory.Exists)
+        var newest = new[] { DateTime.Now, DateTime.Now.AddDays(-1) }.Select(d => CodexDay(a, d)).Where(Directory.Exists)
             .SelectMany(d => Directory.EnumerateFiles(d, "*.jsonl"))
             .MaxBy(File.GetLastWriteTimeUtc);
         if (newest == null) return null;
@@ -89,17 +94,17 @@ public static class Fetch
         catch (IOException) { return null; }
     }
 
-    public static Snapshot CodexFromServer()
+    public static Snapshot CodexFromServer(Account a)
     {
         var (bin, why) = Binary(Vendor.Codex);
         if (bin == null) return why!;
         var init = new JsonObject { ["clientInfo"] = new JsonObject { ["name"] = "limitbar", ["version"] = "1" } };
-        switch (Cli.Rpc(bin, ["app-server"], init, "initialized", "account/rateLimits/read"))
+        switch (Cli.Rpc(bin, ["app-server"], init, "initialized", "account/rateLimits/read", extraEnv: a.Env))
         {
             case Cli.RpcResult.Ok ok:
                 return Parse.CodexServer(ok.Result, DateTimeOffset.Now);
             case Cli.RpcResult.Failed f:
-                if (Cli.Run(bin, ["login", "status"], 15) is { } o && Parse.SignedOutText(o.Text))
+                if (Cli.Run(bin, ["login", "status"], 15, a.Env) is { } o && Parse.SignedOutText(o.Text))
                     return Snapshot.Status(Vendor.Codex, VendorState.SignedOut);
                 return Parse.SignedOutText(f.Why)
                     ? Snapshot.Status(Vendor.Codex, VendorState.SignedOut)

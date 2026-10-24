@@ -61,6 +61,8 @@ public static class Theme
         return t;
     }
 
+    public static T With<T>(this T t, Action<T> a) { a(t); return t; }
+
     public static void Open(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 
     public static readonly CultureInfo En = CultureInfo.InvariantCulture;

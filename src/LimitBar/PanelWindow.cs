@@ -63,10 +63,10 @@ public sealed class PanelWindow : System.Windows.Window
         for (var i = 0; i < installed.Count; i++)
         {
             if (i > 0) col.Children.Add(Hairline());
-            var v = installed[i];
-            col.Children.Add(VendorSection(v, store.Snaps.GetValueOrDefault(v), store.Busy.Contains(v)));
+            var a = installed[i];
+            col.Children.Add(VendorSection(a, store.Snaps.GetValueOrDefault(a.Key), store.Busy.Contains(a.Key)));
         }
-        var missing = VendorInfo.All.Where(v => !installed.Contains(v)).ToList();
+        var missing = store.MissingVendors;
         if (missing.Count > 0)
         {
             if (installed.Count > 0) col.Children.Add(Hairline());
@@ -99,8 +99,9 @@ public sealed class PanelWindow : System.Windows.Window
 
     // MARK: vendor section
 
-    static FrameworkElement VendorSection(Vendor v, Snapshot? snap, bool busy)
+    static FrameworkElement VendorSection(Account acct, Snapshot? snap, bool busy)
     {
+        var v = acct.Vendor;
         var sp = new StackPanel { Margin = new Thickness(12, 8, 12, 9) };
 
         var header = new Grid();
@@ -116,7 +117,7 @@ public sealed class PanelWindow : System.Windows.Window
             }),
         };
         var titles = new StackPanel();
-        titles.Children.Add(Theme.Text(v.Name(), 13, Theme.Primary, FontWeights.SemiBold));
+        titles.Children.Add(Theme.Text(acct.Title, 13, Theme.Primary, FontWeights.SemiBold));
         var plan = snap?.Plan ?? "";
         var planLine = Theme.Text(plan.Length == 0 ? v.Product() : $"{v.Product()} · {plan}", 11, Theme.Secondary);
         planLine.Margin = new Thickness(0, 1, 0, 0);
@@ -145,7 +146,8 @@ public sealed class PanelWindow : System.Windows.Window
             // selectable, so the sign-in command can be copied
             sp.Children.Add(new TextBox
             {
-                Text = $"Signed out — {v.LoginHint()}", IsReadOnly = true, BorderThickness = new Thickness(0),
+                Text = acct.Profile.Length == 0 ? $"Signed out — {v.LoginHint()}"
+                    : "Signed out — right-click the strip > Settings > Terminal, then sign in", IsReadOnly = true, BorderThickness = new Thickness(0),
                 Background = Brushes.Transparent, Foreground = Theme.Secondary, FontSize = 12, FontFamily = Theme.Font,
                 Padding = new Thickness(0), Margin = new Thickness(-2, 7, 0, 0), TextWrapping = TextWrapping.Wrap,
             });
